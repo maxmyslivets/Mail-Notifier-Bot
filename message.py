@@ -30,7 +30,7 @@ class Message:
                 self.body += self._decode(part.get_payload(decode=True))
             elif part.get_content_disposition() == 'attachment':
                 filename = self._decode(part.get_filename())
-                href = ...
+                href = ...  # fixme: get href for download attachment
                 self.files.append((filename, href))
 
                 # # download in project directory
@@ -65,7 +65,8 @@ class Message:
         if len(self.files) != 0:
             attachments = "\nВложения:\n"
             for filename, href in self.files:
-                attachments += f"{filename}: {href}\n"
+                # attachments += f"{filename}: {href}\n"
+                attachments += f"{filename}\n"
         else:
             attachments = ""
         return f"От: {self.email_from} [{self.name_from}]\n" \
