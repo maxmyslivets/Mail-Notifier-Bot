@@ -19,7 +19,8 @@ class TelegramBot:
 
         @self.bot.message_handler(func=lambda message: True)
         def handle_message(message: Message):
-            self.bot.send_message(message.chat.id, "Пока я не умею обрабатывать входящие сообщения, но скоро научусь.")
+            if message.text.startswith('@'+os.getenv("TG_BOT_NAME")):
+                self.bot.send_message(message.chat.id, "Бот временно не обрабатывает входящие запросы.")
 
         self.bot.polling(none_stop=True)
 

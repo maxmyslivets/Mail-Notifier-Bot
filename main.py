@@ -20,7 +20,7 @@ if __name__ == '__main__':
     def run_mail_notifier():
         while True:
             asyncio.run(mail_notifier.check_for_new_message(bot.send_message))
-            time.sleep(20)
+            time.sleep(60)
 
     # запускаем MailNotifier в отдельном потоке
     mail_thread = threading.Thread(target=run_mail_notifier)

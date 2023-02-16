@@ -11,9 +11,10 @@ class MailNotifier:
         self.mail = imaplib.IMAP4_SSL("imap.mail.ru")
         self.mail.login(mail, password)
         self.mail.select("inbox")
+        self.checked_messages = {}
 
     async def check_for_new_message(self, func) -> None:
-        print("start checking")
+        print("checking...")
         result, data = self.mail.search(None, "UNSEEN")
         if result == "OK":
             for num in data[0].split():
@@ -21,4 +22,7 @@ class MailNotifier:
                 self.mail.store(num, '+FLAGS', '\\Unseen')
                 if result == "OK":
                     msg = Message(message_from_bytes(data[0][1]))
-                    func(msg.description)
+                    message_id = msg.id
+                    if message_id not in self.checked_messages:
+                        func(msg.description)
+                        self.checked_messages[message_id] = msg.description
