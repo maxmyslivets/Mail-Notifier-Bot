@@ -4,14 +4,15 @@ import asyncio
 import threading
 
 
-from loadenv import read_dotenv
+from py_dotenv import read_dotenv
 from mail_notifier import MailNotifier
 from bot import TelegramBot
 
 
 if __name__ == '__main__':
 
-    read_dotenv('.env')
+    dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+    read_dotenv(dotenv_path)
 
     bot = TelegramBot()
     mail_notifier = MailNotifier(os.getenv("MAIL_USER"), os.getenv("MAIL_PASSWORD"))
