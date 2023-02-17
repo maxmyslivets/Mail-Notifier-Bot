@@ -14,11 +14,17 @@ class TelegramBot:
         logger.debug("Create bot")
         self.bot = telebot.TeleBot(token)
 
-    def send_message(self, text: str):
+    def send_message(self, text: str, attachments: list):
         try:
             if os.getenv("TG_CHAT_ID") is not None:
                 logger.info("Send new message")
-                self.bot.send_message(os.getenv("TG_CHAT_ID"), text)
+                if not attachments:
+                    self.bot.send_message(os.getenv("TG_CHAT_ID"), text)
+                else:
+                    rpl = self.bot.send_message(os.getenv("TG_CHAT_ID"), text).message_id
+                    for filename, document in attachments:
+                        self.bot.send_document(os.getenv("TG_CHAT_ID"), document=document, visible_file_name=filename,
+                                               reply_to_message_id=rpl)
         except Exception as e:
             logger.error(f"Error occurred while sending message: {e}")
 

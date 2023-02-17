@@ -108,7 +108,7 @@ run_mail_reader(bot): статический метод для запуска Ma
                     if result == "OK":
                         message = Message(message_from_bytes(data[0][1]))
                         if not check_read_messages(message.id):
-                            func(message.post)
+                            func(*message.post)
                             set_read_messages(message.id)
         except Exception as e:
             logger.error(f"Error occurred while checking for new messages: {e}")

@@ -12,7 +12,7 @@ class Message:
         self.name_from: str = ...
         self.email_from: str = ...
         self.body: str = ...
-        self.files = []
+        self.attachments = []
 
         self._parse(raw_message)
 
@@ -30,8 +30,8 @@ class Message:
                 self.body += self._decode(part.get_payload(decode=True))
             elif part.get_content_disposition() == 'attachment':
                 filename = self._decode(part.get_filename())
-                href = ...  # fixme: get href for download attachment
-                self.files.append((filename, href))
+                document = part.get_payload(decode=True)
+                self.attachments.append((filename, document))
 
                 # # download in project directory
                 # with open(filename, "wb") as fp:
@@ -61,15 +61,14 @@ class Message:
             return string.decode('utf-8', errors='ignore')
 
     @property
-    def post(self) -> str:
-        if len(self.files) != 0:
-            attachments = "\nВложения:\n"
-            for filename, href in self.files:
-                # attachments += f"{filename}: {href}\n"
+    def post(self) -> tuple:
+        if self.attachments:
+            attachments = f"\nВложения {len(self.attachments)}:\n"
+            for filename, document in self.attachments:
                 attachments += f"{filename}\n"
         else:
             attachments = ""
         return f"От: {self.email_from} [{self.name_from}]\n" \
                f"Время: {self.time}\n" \
                f"Тема: {self.subject}\n" \
-               f"Текст: {self.body}" + attachments
+               f"Текст: {self.body}" + attachments, self.attachments
