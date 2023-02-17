@@ -61,7 +61,7 @@ class Message:
             return string.decode('utf-8', errors='ignore')
 
     @property
-    def description(self) -> str:
+    def post(self) -> str:
         if len(self.files) != 0:
             attachments = "\nВложения:\n"
             for filename, href in self.files:
