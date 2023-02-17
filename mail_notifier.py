@@ -12,13 +12,13 @@ class MailNotifier:
         self.mail_credentials = (mail, password)
         self.checked_messages = {}
 
-    def __aenter__(self):
+    async def __aenter__(self):
         self.mail = imaplib.IMAP4_SSL("imap.mail.ru")
         self.mail.login(*self.mail_credentials)
         self.mail.select("inbox")
         return self
 
-    def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         self.mail.close()
         self.mail.logout()
 
