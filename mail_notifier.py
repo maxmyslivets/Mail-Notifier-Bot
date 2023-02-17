@@ -8,10 +8,19 @@ from message import Message
 class MailNotifier:
 
     def __init__(self, mail: str, password: str) -> None:
-        self.mail = imaplib.IMAP4_SSL("imap.mail.ru")
-        self.mail.login(mail, password)
-        self.mail.select("inbox")
+        self.mail = None
+        self.mail_credentials = (mail, password)
         self.checked_messages = {}
+
+    def __aenter__(self):
+        self.mail = imaplib.IMAP4_SSL("imap.mail.ru")
+        self.mail.login(*self.mail_credentials)
+        self.mail.select("inbox")
+        return self
+
+    def __aexit__(self, exc_type, exc_val, exc_tb):
+        self.mail.close()
+        self.mail.logout()
 
     async def check_for_new_message(self, func) -> None:
         print("checking...")
