@@ -58,3 +58,22 @@ def set_read_messages(id_message: str, tg_message_id: int) -> None:
             conn.commit()
     except sqlite3.Error as e:
         logger.error(f"Error {e.args[0]} occurred while setting message {id_message} as read.")
+
+
+def get_id_message(tg_message_id: int) -> str:
+    try:
+        logger.debug(f"Get id message from database")
+        # Установка соединения с базой данных
+        with sqlite3.connect(DATABASE) as conn:
+            # Создание курсора
+            cur = conn.cursor()
+
+            # Поиск сообщения в базе данных
+            cur.execute('SELECT id_message FROM messages WHERE tg_message_id = ?', (tg_message_id,))
+            result = cur.fetchone()
+
+            # Если сообщение найдено, возвращается его id, иначе - None
+            return result[0] if result is not None else None
+    except sqlite3.Error as e:
+        logger.error(f"Error {e.args[0]} occurred while getting id message for tg_message_id {tg_message_id}.")
+        return None

@@ -1,5 +1,6 @@
 import imaplib
 import asyncio
+import threading
 import traceback
 
 from email import message_from_bytes
@@ -88,6 +89,22 @@ run_mail_reader(bot): статический метод для запуска Ma
             logger.error(f"Failed to close connect to {self.mail_server}")
             raise
 
+    def __enter__(self):
+        # синхронный метод для входа в контекстный менеджер
+        def run_async():
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self.__aenter__())
+        threading.Thread(target=run_async).start()
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # синхронный метод для выхода из контекстного менеджера
+        def run_async():
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self.__aexit__(exc_type, exc_val, exc_tb))
+        threading.Thread(target=run_async).start()
+
     async def check_for_new_message(self, func) -> None:
         """
         Метод check_for_new_message проверяет наличие непрочитанных сообщений на почтовом сервере, извлекает описание
@@ -136,3 +153,30 @@ run_mail_reader(bot): статический метод для запуска Ma
             except Exception:
                 logger.error(f"Error occurred in MailReader")
             await asyncio.sleep(INTERVAL)
+
+    def get_attachments(self, message_id: str):
+        try:
+            logger.debug(f"Getting attachments from message id {message_id}")
+
+            # проверка, было ли сообщение уже прочитано
+            unseen_messages = []
+            result, data = self.mail.search(None, "UNSEEN")
+            if result == "OK":
+                for num in data[0].split():
+                    result, data = self.mail.fetch(num, "(RFC822)")
+                    self.mail.store(num, '+FLAGS', '\\Unseen')
+                    if result == "OK":
+                        unseen_messages.append(Message(message_from_bytes(data[0][1])).id)
+            is_unseen = True if message_id in unseen_messages else False
+
+            # Поиск сообщения по его UID
+            result, data = self.mail.uid('search', None, f'HEADER Message-ID "{message_id}"')
+            if result == "OK":
+                for num in data[0].split():
+                    result, data = self.mail.uid('fetch', num, "(RFC822)")
+                    if is_unseen:
+                        self.mail.store(num, '+FLAGS', '\\Unseen')
+                    if result == "OK":
+                        return Message.get_attachments_content(message_from_bytes(data[0][1]))
+        except Exception:
+            logger.error(f"Error occurred while checking for new messages")

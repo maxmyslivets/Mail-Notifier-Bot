@@ -19,8 +19,8 @@ class Message:
         else:
             self.id = raw_message["Received"]
 
-        self.name_from = self._from_subj_decode(raw_message["From"])
-        self.subject = self._from_subj_decode(raw_message["Subject"])
+        self.name_from = self.from_subj_decode(raw_message["From"])
+        self.subject = self.from_subj_decode(raw_message["Subject"])
 
         if raw_message["Return-path"]:
             self.email_from = raw_message["Return-path"].lstrip("<").rstrip(">")
@@ -30,7 +30,8 @@ class Message:
         self.text = self._get_text(raw_message)
         self.attachments = self._get_attachments(raw_message)
 
-    def _from_subj_decode(self, msg_from_subj):
+    @staticmethod
+    def from_subj_decode(msg_from_subj):
         """декодирует имена отправителей и темы сообщений электронной почты."""
         if msg_from_subj:
             encoding = decode_header(msg_from_subj)[0][1]
@@ -114,8 +115,22 @@ class Message:
                     and part.get_content_disposition() == "attachment"
             ):
                 filename = part.get_filename()
-                filename = self._from_subj_decode(filename)
+                filename = self.from_subj_decode(filename)
                 attachments.append(filename)
+        return attachments
+
+    @staticmethod
+    def get_attachments_content(msg: EmailMessage) -> list:
+        attachments = list()
+        for part in msg.walk():
+            if (
+                    part["Content-Type"]
+                    and "name" in part["Content-Type"]
+                    and part.get_content_disposition() == "attachment"
+            ):
+                filename = Message.from_subj_decode(part.get_filename())
+                content = msg.get_payload(decode=True)
+                attachments.append((filename, content))
         return attachments
 
     @property
