@@ -27,6 +27,8 @@ class Message:
         else:
             self.email_from = self.name_from
 
+        # FIXME: parse image from email message
+
         self.text = self._get_text(raw_message)
         self.attachments = self._get_attachments(raw_message)
 
@@ -63,9 +65,7 @@ class Message:
             count = 0
             if msg.get_content_maintype() == "text" and count == 0:
                 extract_part = self._decode(msg)
-                print(extract_part)
                 if msg.get_content_subtype() == "html":
-                    print("HTMLLL")
                     letter_text = self._get_text_from_html(extract_part)
                 else:
                     letter_text = extract_part
@@ -129,7 +129,7 @@ class Message:
                     and part.get_content_disposition() == "attachment"
             ):
                 filename = Message.from_subj_decode(part.get_filename())
-                content = msg.get_payload(decode=True)
+                content = part.get_payload(decode=True)
                 attachments.append((filename, content))
         return attachments
 

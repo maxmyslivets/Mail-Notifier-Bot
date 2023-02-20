@@ -49,8 +49,7 @@ run_mail_reader(bot): статический метод для запуска Ma
         :param password:
         """
 
-        self.mail = None
-        self.mail_server = server
+        self.mail = imaplib.IMAP4_SSL(server)
         self.mail_credentials = (mail, password)
 
     async def __aenter__(self):
@@ -61,14 +60,12 @@ run_mail_reader(bot): статический метод для запуска Ma
         """
 
         try:
-            logger.debug(f"Connect to {self.mail_server}")
-            self.mail = imaplib.IMAP4_SSL(self.mail_server)
             logger.debug(f"Authorization {self.mail_credentials[0]}")
             self.mail.login(*self.mail_credentials)
             self.mail.select("inbox")
             return self
         except Exception:
-            logger.error(f"Failed to connect to {self.mail_server}")
+            logger.error(f"Failed to connect to mail server")
             raise
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -82,11 +79,11 @@ run_mail_reader(bot): статический метод для запуска Ma
         """
 
         try:
-            logger.debug(f"Close connection with {self.mail_server}")
+            logger.debug(f"Close connection with mail server")
             self.mail.close()
             self.mail.logout()
         except Exception:
-            logger.error(f"Failed to close connect to {self.mail_server}")
+            logger.error(f"Failed to close connect to mail server")
             raise
 
     def __enter__(self):
@@ -168,7 +165,6 @@ run_mail_reader(bot): статический метод для запуска Ma
                     if result == "OK":
                         unseen_messages.append(Message(message_from_bytes(data[0][1])).id)
             is_unseen = True if message_id in unseen_messages else False
-
             # Поиск сообщения по его UID
             result, data = self.mail.uid('search', None, f'HEADER Message-ID "{message_id}"')
             if result == "OK":

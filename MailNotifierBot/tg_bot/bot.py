@@ -34,10 +34,10 @@ class TelegramBot:
 
     def send_document(self, reply_id: int, attachments: list) -> None:
         for attachment in attachments:
-            for filename, content in attachment:
-                logger.info("Send attachment")
-                self.bot.send_document(os.getenv("TG_CHAT_ID"), document=content, caption=filename,
-                                       reply_to_message_id=reply_id)
+            logger.info("Send attachment")
+            self.bot.send_document(os.getenv("TG_CHAT_ID"),
+                                   document=attachment[1], visible_file_name=attachment[0],
+                                   reply_to_message_id=reply_id)
 
     def listen_for_commands(self):
         try:
@@ -60,15 +60,24 @@ class TelegramBot:
             @self.bot.callback_query_handler(func=lambda call: True)
             def handle_button_click(call: CallbackQuery):
                 msg_id = call.message.id
+
+                # FIXME: Скачивает все вложения по нажатию одной из кнопок
                 if call.data == 'download':
                     email_message_id = get_id_message(msg_id)
-                    # FIXME: ошибки в работе асинхронного контекстного менеджера
-                    with MailReader(MAIL_SERVER, MAIL_USER, MAIL_PASSWORD) as mail_reader:
-                        mail_reader.get_attachments(email_message_id)
-                        self.send_document(msg_id, mail_reader.get_attachments(email_message_id))
+                    self.handle_button_click(msg_id, email_message_id)
 
         except Exception:
             logger.error(f"Error occurred while listening for commands")
+
+    def handle_button_click(self, msg_id, email_message_id):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self.async_handle_button_click(msg_id, email_message_id))
+
+    async def async_handle_button_click(self, msg_id, email_message_id):
+        async with MailReader(MAIL_SERVER, MAIL_USER, MAIL_PASSWORD) as mail_reader:
+            attachments = mail_reader.get_attachments(email_message_id)
+            self.send_document(msg_id, attachments)
 
     def run_polling(self):
         try:
