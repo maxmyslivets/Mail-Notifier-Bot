@@ -16,7 +16,7 @@ def create_database():
                 cur = conn.cursor()
 
                 # Создание таблицы сообщений
-                cur.execute('CREATE TABLE messages (id_message TEXT, PRIMARY KEY (id_message))')
+                cur.execute('CREATE TABLE messages (id_message TEXT, tg_message_id INT, PRIMARY KEY (id_message))')
 
                 # Сохранение изменений
                 conn.commit()
@@ -43,7 +43,7 @@ def check_read_messages(id_message: str) -> bool:
         return False
 
 
-def set_read_messages(id_message: str) -> None:
+def set_read_messages(id_message: str, tg_message_id: int) -> None:
     try:
         logger.debug(f"Setting id message in database")
         # Установка соединения с базой данных
@@ -52,7 +52,7 @@ def set_read_messages(id_message: str) -> None:
             cur = conn.cursor()
 
             # Добавление сообщения в базу данных
-            cur.execute('INSERT INTO messages (id_message) VALUES (?)', (id_message,))
+            cur.execute('INSERT INTO messages (id_message, tg_message_id) VALUES (?, ?)', (id_message, tg_message_id))
 
             # Сохранение изменений
             conn.commit()

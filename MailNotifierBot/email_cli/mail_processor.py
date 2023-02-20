@@ -3,43 +3,46 @@ import email.utils
 import base64
 from bs4 import BeautifulSoup
 import quopri
+import re
 
 from email.message import Message as EmailMessage
 from email.header import decode_header
+from MailNotifierBot.logger import logger
 
 
 class Message:
 
     def __init__(self, raw_message: EmailMessage) -> None:
-        self.id: str = ...
-        self.name_from: str = ...
-        self.email_from: str = ...
-        self.body: str = ...
-        self.attachments = []
+
+        if raw_message["Message-ID"]:
+            self.id = raw_message["Message-ID"].lstrip("<").rstrip(">")
+        else:
+            self.id = raw_message["Received"]
+
+        self.name_from = self._from_subj_decode(raw_message["From"])
+        self.subject = self._from_subj_decode(raw_message["Subject"])
+
+        if raw_message["Return-path"]:
+            self.email_from = raw_message["Return-path"].lstrip("<").rstrip(">")
+        else:
+            self.email_from = self.name_from
 
         self.text = self._get_text(raw_message)
         self.attachments = self._get_attachments(raw_message)
 
-    # def _parse(self, raw: EmailMessage) -> None:
-    #     self.id = raw["Message-ID"]
-    #     self.time = self._parse_time(raw["Date"])
-    #     self.name_from = raw['Return-path'][1:-1]
-    #     self.email_from = self._decode(raw["From"])
-    #     self.subject = self._decode(raw["Subject"])
-    #
-    #     self.body = ""
-    #     for part in raw.walk():
-    #         part: EmailMessage
-    #         if part.get_content_maintype() == 'text' and part.get_content_subtype() == 'plain':
-    #             self.body += self._decode(part.get_payload(decode=True))
-    #         elif part.get_content_disposition() == 'attachment':
-    #             filename = self._decode(part.get_filename())
-    #             document = part.get_payload(decode=True)
-    #             self.attachments.append((filename, document))
-    #
-    #             # # download in project directory 
-    #             # with open(filename, "wb") as fp:
-    #             #     fp.write(part.get_payload(decode=True))
+    def _from_subj_decode(self, msg_from_subj):
+        """декодирует имена отправителей и темы сообщений электронной почты."""
+        if msg_from_subj:
+            encoding = decode_header(msg_from_subj)[0][1]
+            msg_from_subj = decode_header(msg_from_subj)[0][0]
+            if isinstance(msg_from_subj, bytes):
+                msg_from_subj = msg_from_subj.decode(encoding)
+            if isinstance(msg_from_subj, str):
+                pass
+            msg_from_subj = str(msg_from_subj).strip("<>").replace("<", "")
+            return msg_from_subj
+        else:
+            return None
 
     def _get_text(self, msg):
         if msg.is_multipart():
@@ -59,7 +62,9 @@ class Message:
             count = 0
             if msg.get_content_maintype() == "text" and count == 0:
                 extract_part = self._decode(msg)
+                print(extract_part)
                 if msg.get_content_subtype() == "html":
+                    print("HTMLLL")
                     letter_text = self._get_text_from_html(extract_part)
                 else:
                     letter_text = extract_part
@@ -75,8 +80,8 @@ class Message:
             for paragraph in paragraphs:
                 text += paragraph.text + "\n"
             return text.replace("\xa0", " ")
-        except (Exception) as exp:
-            print("text ftom html err ", exp)
+        except Exception as e:
+            logger.error(f"Text from html err: {e}")
             return False
 
     def _parse_time(self, time_str: str) -> str:
@@ -99,15 +104,25 @@ class Message:
         else:  # all possible types: quoted-printable, base64, 7bit, 8bit, and binary
             return part.get_payload()
 
+    def _get_attachments(self, msg):
+        """извлекает список имен файлов всех вложений в сообщении электронной почты."""
+        attachments = list()
+        for part in msg.walk():
+            if (
+                    part["Content-Type"]
+                    and "name" in part["Content-Type"]
+                    and part.get_content_disposition() == "attachment"
+            ):
+                filename = part.get_filename()
+                filename = self._from_subj_decode(filename)
+                attachments.append(filename)
+        return attachments
+
     @property
-    def post(self) -> tuple:
-        if self.attachments:
-            attachments = f"\nВложения {len(self.attachments)}:\n"
-            for filename, document in self.attachments:
-                attachments += f"{filename}\n"
-        else:
-            attachments = ""
-        return f"От: {self.email_from} [{self.name_from}]\n" \
-               f"Время: {self.time}\n" \
-               f"Тема: {self.subject}\n" \
-               f"Текст: {self.body}" + attachments, self.attachments
+    def post(self) -> str:
+        return f"\U0001F4E8<b>{self.subject}</b>\n" \
+               f"\n" \
+               f"<pre>{self.name_from}\n" \
+               f"{self.email_from}</pre>\n" \
+               f"\n" \
+               f"{self.text}"

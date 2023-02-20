@@ -1,5 +1,6 @@
 import imaplib
 import asyncio
+import traceback
 
 from email import message_from_bytes
 
@@ -65,8 +66,8 @@ run_mail_reader(bot): статический метод для запуска Ma
             self.mail.login(*self.mail_credentials)
             self.mail.select("inbox")
             return self
-        except Exception as e:
-            logger.error(f"Failed to connect to {self.mail_server}: {e}")
+        except Exception:
+            logger.error(f"Failed to connect to {self.mail_server}")
             raise
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -83,8 +84,8 @@ run_mail_reader(bot): статический метод для запуска Ma
             logger.debug(f"Close connection with {self.mail_server}")
             self.mail.close()
             self.mail.logout()
-        except Exception as e:
-            logger.error(f"Failed to close connect to {self.mail_server}: {e}")
+        except Exception:
+            logger.error(f"Failed to close connect to {self.mail_server}")
             raise
 
     async def check_for_new_message(self, func) -> None:
@@ -108,10 +109,10 @@ run_mail_reader(bot): статический метод для запуска Ma
                     if result == "OK":
                         message = Message(message_from_bytes(data[0][1]))
                         if not check_read_messages(message.id):
-                            func(*message.post)
-                            set_read_messages(message.id)
-        except Exception as e:
-            logger.error(f"Error occurred while checking for new messages: {e}")
+                            tg_msg_id = func(message.post, message.attachments)
+                            set_read_messages(message.id, tg_msg_id)
+        except Exception:
+            logger.error(f"Error occurred while checking for new messages")
 
     @staticmethod
     async def run_mail_reader(bot):
@@ -132,6 +133,6 @@ run_mail_reader(bot): статический метод для запуска Ma
                         await mail_reader.check_for_new_message(bot.send_message)
                 else:
                     logger.debug(f"Wait connection bot to chat")
-            except Exception as e:
-                logger.error(f"Error occurred in MailReader: {e}")
+            except Exception:
+                logger.error(f"Error occurred in MailReader")
             await asyncio.sleep(INTERVAL)

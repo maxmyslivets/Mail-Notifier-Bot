@@ -1,4 +1,6 @@
 import logging
+import traceback
+
 import coloredlogs
 import inspect
 
@@ -41,7 +43,7 @@ class Logger:
 
     def error(self, msg, *args, **kwargs):
         frame = inspect.currentframe().f_back
-        self.logger.error(msg, *args, extra={'funcname': frame.f_code.co_name}, **kwargs)
+        self.logger.error(msg + '\n' + traceback.format_exc(), *args, extra={'funcname': frame.f_code.co_name}, **kwargs)
 
     def critical(self, msg, *args, **kwargs):
         frame = inspect.currentframe().f_back
