@@ -29,8 +29,6 @@ class Message:
         else:
             self.email_from = self.name_from
 
-        # FIXME: parse image from email message
-
         self.text = self._get_text(raw_message)
         if self.text is None:
             self.text = ""
@@ -89,6 +87,15 @@ class Message:
             logger.error(f"Text from html err: {e}")
             return False
 
+    def _get_images_content(self, msg):
+        images = []
+        for part in msg.walk():
+            if part.get_content_maintype() == "image":
+                filename = part.get_filename()
+                image_data = part.get_payload(decode=True)
+                images.append((filename, image_data))
+        return images
+
     def _parse_time(self, time_str: str) -> str:
         time_tuple = email.utils.parsedate_tz(time_str)
         if time_tuple:
@@ -116,7 +123,7 @@ class Message:
             if (
                     part["Content-Type"]
                     and "name" in part["Content-Type"]
-                    and part.get_content_disposition() == "attachment"
+                    and (part.get_content_disposition() == "attachment" or part.get_content_maintype() == "image")
             ):
                 filename = part.get_filename()
                 filename = self.from_subj_decode(filename)
@@ -130,7 +137,7 @@ class Message:
             if (
                     part["Content-Type"]
                     and "name" in part["Content-Type"]
-                    and part.get_content_disposition() == "attachment"
+                    and (part.get_content_disposition() == "attachment" or part.get_content_maintype() == "image")
             ):
                 filename = Message.from_subj_decode(part.get_filename())
                 content = part.get_payload(decode=True)

@@ -24,8 +24,8 @@ class TelegramBot:
             if os.getenv("TG_CHAT_ID") is not None:
                 logger.info("Send new message")
                 markup = telebot.types.InlineKeyboardMarkup()
-                for i, label in enumerate(attachments):
-                    attachment_id = str(i)
+                # TODO: Добавить кнопку "Пометить как прочитанное"
+                for attachment_id, label in enumerate(attachments):
                     callback_data = f"download_{attachment_id}"
                     markup.add(
                         telebot.types.InlineKeyboardButton(text=f"\U0001F4CE {label}", callback_data=callback_data))
@@ -62,10 +62,13 @@ class TelegramBot:
 
             @self.bot.callback_query_handler(func=lambda call: True)
             def handle_button_click(call: CallbackQuery):
-                msg_id = call.message.id
-                attachment_id = call.data.split('_')[-1]
-                email_message_id = get_id_message(msg_id)
-                self.handle_button_click(msg_id, email_message_id, attachment_id)
+                if call.data.startswith("download"):
+                    msg_id = call.message.id
+                    attachment_id = call.data.split('_')[-1]
+                    email_message_id = get_id_message(msg_id)
+                    self.handle_button_click(msg_id, email_message_id, attachment_id)
+                # TODO: Добавить кнопку "Пометить как прочитанное"
+                #  При нажатии письмо становится прочитанным и кнопка удаляется
 
         except Exception:
             logger.error(f"Error occurred while listening for commands")

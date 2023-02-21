@@ -176,3 +176,5 @@ run_mail_reader(bot): статический метод для запуска Ma
                         return Message.get_attachments_content(message_from_bytes(data[0][1]))
         except Exception:
             logger.error(f"Error occurred while checking for new messages")
+
+    # TODO: Добавить статический метод, который отмечает письмо как прочитанное
