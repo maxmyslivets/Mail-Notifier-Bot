@@ -21,6 +21,8 @@ class Message:
 
         self.name_from = self.from_subj_decode(raw_message["From"])
         self.subject = self.from_subj_decode(raw_message["Subject"])
+        if self.subject is None:
+            self.subject = "Без темы"
 
         if raw_message["Return-path"]:
             self.email_from = raw_message["Return-path"].lstrip("<").rstrip(">")
@@ -30,6 +32,8 @@ class Message:
         # FIXME: parse image from email message
 
         self.text = self._get_text(raw_message)
+        if self.text is None:
+            self.text = ""
         self.attachments = self._get_attachments(raw_message)
 
     @staticmethod
@@ -135,9 +139,9 @@ class Message:
 
     @property
     def post(self) -> str:
-        return f"\U0001F4E8<b>{self.subject}</b>\n" \
+        return f"\U0001F4E8 <b>{self.subject}</b>\n" \
                f"\n" \
                f"<pre>{self.name_from}\n" \
                f"{self.email_from}</pre>\n" \
                f"\n" \
-               f"{self.text}"
+               f"<i>{self.text}</i>"

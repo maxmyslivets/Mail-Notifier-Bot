@@ -25,7 +25,7 @@ class TelegramBot:
                 logger.info("Send new message")
                 markup = telebot.types.InlineKeyboardMarkup()
                 for label in attachments:
-                    markup.add(telebot.types.InlineKeyboardButton(text=label, callback_data="download"))
+                    markup.add(telebot.types.InlineKeyboardButton(text=f"\U0001F4CE {label}", callback_data="download"))
                 msg = self.bot.send_message(os.getenv("TG_CHAT_ID"), text, parse_mode="HTML", reply_markup=markup)
                 return msg.id
         except Exception:
