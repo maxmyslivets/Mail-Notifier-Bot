@@ -171,7 +171,7 @@ run_mail_reader(bot): статический метод для запуска Ma
                 for num in data[0].split():
                     result, data = self.mail.uid('fetch', num, "(RFC822)")
                     if is_unseen:
-                        self.mail.store(num, '+FLAGS', '\\Unseen')
+                        self.mail.uid('store', num, '+FLAGS', '\\Unseen')
                     if result == "OK":
                         return Message.get_attachments_content(message_from_bytes(data[0][1]))
         except Exception:

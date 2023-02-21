@@ -24,8 +24,11 @@ class TelegramBot:
             if os.getenv("TG_CHAT_ID") is not None:
                 logger.info("Send new message")
                 markup = telebot.types.InlineKeyboardMarkup()
-                for label in attachments:
-                    markup.add(telebot.types.InlineKeyboardButton(text=f"\U0001F4CE {label}", callback_data="download"))
+                for i, label in enumerate(attachments):
+                    attachment_id = str(i)
+                    callback_data = f"download_{attachment_id}"
+                    markup.add(
+                        telebot.types.InlineKeyboardButton(text=f"\U0001F4CE {label}", callback_data=callback_data))
                 msg = self.bot.send_message(os.getenv("TG_CHAT_ID"), text, parse_mode="HTML", reply_markup=markup)
                 return msg.id
         except Exception:
@@ -60,24 +63,23 @@ class TelegramBot:
             @self.bot.callback_query_handler(func=lambda call: True)
             def handle_button_click(call: CallbackQuery):
                 msg_id = call.message.id
-
-                # FIXME: Скачивает все вложения по нажатию одной из кнопок
-                if call.data == 'download':
-                    email_message_id = get_id_message(msg_id)
-                    self.handle_button_click(msg_id, email_message_id)
+                attachment_id = call.data.split('_')[-1]
+                email_message_id = get_id_message(msg_id)
+                self.handle_button_click(msg_id, email_message_id, attachment_id)
 
         except Exception:
             logger.error(f"Error occurred while listening for commands")
 
-    def handle_button_click(self, msg_id, email_message_id):
+    def handle_button_click(self, msg_id, email_message_id, attachment_id):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(self.async_handle_button_click(msg_id, email_message_id))
+        loop.run_until_complete(self.async_handle_button_click(msg_id, email_message_id, attachment_id))
 
-    async def async_handle_button_click(self, msg_id, email_message_id):
+    async def async_handle_button_click(self, msg_id, email_message_id, attachment_id):
         async with MailReader(MAIL_SERVER, MAIL_USER, MAIL_PASSWORD) as mail_reader:
             attachments = mail_reader.get_attachments(email_message_id)
-            self.send_document(msg_id, attachments)
+            attachment = attachments[int(attachment_id)]
+            self.send_document(msg_id, [attachment])
 
     def run_polling(self):
         try:
