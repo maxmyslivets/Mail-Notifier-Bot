@@ -25,6 +25,10 @@ class TelegramBot:
                 logger.info("Send new message")
                 markup = telebot.types.InlineKeyboardMarkup()
                 # TODO: Добавить кнопку "Пометить как прочитанное"
+                read_button_data = "read"
+                read_button = telebot.types.InlineKeyboardButton(text="\U00002705 Пометить как прочитанное",
+                                                                 callback_data=read_button_data)
+                markup.add(read_button)
                 for attachment_id, label in enumerate(attachments):
                     callback_data = f"download_{attachment_id}"
                     markup.add(
@@ -62,27 +66,32 @@ class TelegramBot:
 
             @self.bot.callback_query_handler(func=lambda call: True)
             def handle_button_click(call: CallbackQuery):
+                msg_id = call.message.id
+                email_message_id = get_id_message(msg_id)
                 if call.data.startswith("download"):
-                    msg_id = call.message.id
                     attachment_id = call.data.split('_')[-1]
-                    email_message_id = get_id_message(msg_id)
                     self.handle_button_click(msg_id, email_message_id, attachment_id)
-                # TODO: Добавить кнопку "Пометить как прочитанное"
-                #  При нажатии письмо становится прочитанным и кнопка удаляется
+                if call.data == "read" or call.data == "unread":
+                    self.handle_button_click(msg_id, email_message_id)
+                    # TODO: При нажатии текст кнопки меняется на "Пометить как непрочитанное"
+                    #  и data меняется на "unread"
 
         except Exception:
             logger.error(f"Error occurred while listening for commands")
 
-    def handle_button_click(self, msg_id, email_message_id, attachment_id):
+    def handle_button_click(self, msg_id, email_message_id, attachment_id=None):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(self.async_handle_button_click(msg_id, email_message_id, attachment_id))
 
-    async def async_handle_button_click(self, msg_id, email_message_id, attachment_id):
+    async def async_handle_button_click(self, msg_id, email_message_id, attachment_id=None):
         async with MailReader(MAIL_SERVER, MAIL_USER, MAIL_PASSWORD) as mail_reader:
-            attachments = mail_reader.get_attachments(email_message_id)
-            attachment = attachments[int(attachment_id)]
-            self.send_document(msg_id, [attachment])
+            if attachment_id is not None:
+                attachments = mail_reader.get_attachments(email_message_id)
+                attachment = attachments[int(attachment_id)]
+                self.send_document(msg_id, [attachment])
+            else:
+                mail_reader.mark_as_read(email_message_id)
 
     def run_polling(self):
         try:

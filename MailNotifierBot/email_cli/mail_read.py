@@ -178,3 +178,22 @@ run_mail_reader(bot): статический метод для запуска Ma
             logger.error(f"Error occurred while checking for new messages")
 
     # TODO: Добавить статический метод, который отмечает письмо как прочитанное
+    def mark_as_read(self, message_id):
+        try:
+            logger.debug(f"Marking message id {message_id} as read")
+            result, data = self.mail.uid('search', None, f'HEADER Message-ID "{message_id}"')
+            if result == "OK":
+                for num in data[0].split():
+                    self.mail.uid('store', num, '+FLAGS', '\\Seen')
+        except Exception:
+            logger.error(f"Error occurred while marking message as read")
+
+    def mark_as_unread(self, message_id):
+        try:
+            logger.debug(f"Marking message id {message_id} as unread")
+            result, data = self.mail.uid('search', None, f'HEADER Message-ID "{message_id}"')
+            if result == "OK":
+                for num in data[0].split():
+                    self.mail.uid('store', num, '+FLAGS', '\\Unseen')
+        except Exception:
+            logger.error(f"Error occurred while marking message as unread")
